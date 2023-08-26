@@ -482,7 +482,7 @@ Module.register("MMM-Todoist", {
 
 		var para = temp.getElementsByTagName('p');
 
-		return this.createCell("title bright alignLeft", 
+		return this.createCell("title medium bright alignLeft", 
 			this.shorten(para[0].innerHTML, this.config.maxTitleLength, this.config.wrapEvents));
 
 		// return this.createCell("title bright alignLeft", item.content);
