@@ -275,7 +275,7 @@ Module.register("MMM-Todoist", {
 				console.log(this.config.projects);
 			}
 		}
-
+		/* Not needed for labels, but kept for reuse elsewhere
 		// Loop through labels fetched from API and find corresponding label IDs for task filtering
 		// Could be re-used for project names -> project IDs.
 		if (self.config.labels.length>0 && tasks.labels != undefined) {
@@ -288,7 +288,7 @@ Module.register("MMM-Todoist", {
 				}
 			}
 		}
-
+		*/
 		if (self.config.displayTasksWithinDays > -1 || !self.config.displayTasksWithoutDue) {
 			tasks.items = tasks.items.filter(function (item) {
 				if (item.due === null) {
@@ -311,17 +311,17 @@ Module.register("MMM-Todoist", {
 			if (item.parent_id!=null && !self.config.displaySubtasks) { return; }
 
 			// Filter using label if a label is configured
-			if (labelIds.length>0 && item.labels.length > 0) {
-				// Check all the labels assigned to the task. Add to items if match with configured label
-				for (let label of item.labels) {
-					for (let labelNumber of labelIds) {
-						if (label == labelNumber) {
-							items.push(item);
-							return;
-						}
-					}
-				}
-			}
+			if (self.config.labels.length > 0 && item.labels.length > 0) {
+        			// Check all the labels assigned to the task. Add to items if match with configured label
+        			for (let label of item.labels) {
+          				for (let labelName of self.config.labels) {
+            					if (label == labelName) { //the string returned from SyncAPI matches the strong in config
+              						items.push(item);
+              						return;
+            					}
+          				}
+        			}
+      			}
 
 			// Filter using projets if projects are configured
 			if (self.config.projects.length>0){
@@ -414,10 +414,28 @@ Module.register("MMM-Todoist", {
 	},
 	sortByTodoist: function (itemstoSort) {
 		itemstoSort.sort(function (a, b) {
-			// 2019-12-31 bugfix by thyed, property is child_order, not item_order
-			var itemA = a.child_order,
-				itemB = b.child_order;
-			return itemA - itemB;
+			if (!a.parent_id && !b.parent_id) {
+				// neither have parent_id so both are parent tasks, sort by their id
+				return a.id - b.id;
+			} else if (a.parent_id === b.parent_id) {
+				// both are children of the same parent task, sort by child order
+				return a.child_order - b.child_order;
+			} else if (a.parent_id === b.id) {
+				// a is a child of b, so it goes after b
+				return 1;
+			} else if (b.parent_id === a.id) {
+				// b is a child of a, so it goes after a
+				return -1;
+			} else if (!a.parent_id) {
+				// a is a parent task, b is a child (but not of a), so compare a to b's parent
+				return a.id - b.parent_id;
+			} else if (!b.parent_id) {
+				// b is a parent task, a is a child (but not of b), so compare b to a's parent
+				return a.parent_id - b.id;
+			} else {
+				// both are child tasks, but with different parents so sort by their parents
+				return a.parent_id - b.parent_id;
+			}
 		});
 		return itemstoSort;
 	},
@@ -481,9 +499,14 @@ Module.register("MMM-Todoist", {
 		temp.innerHTML = item.contentHtml;
 
 		var para = temp.getElementsByTagName('p');
-
+		var taskText = para[0].innerHTML;
+		// if sorting by todoist, indent subtasks under their parents
+		if (this.config.sortType === "todoist" && item.parent_id) {
+			// this item is a subtask so indent it
+			taskText = '- ' + taskText;
+		}
 		return this.createCell("title medium bright alignLeft", 
-			this.shorten(para[0].innerHTML, this.config.maxTitleLength, this.config.wrapEvents));
+			this.shorten(taskText, this.config.maxTitleLength, this.config.wrapEvents));
 
 		// return this.createCell("title bright alignLeft", item.content);
 	},
