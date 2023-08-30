@@ -583,6 +583,14 @@ Module.register("MMM-Todoist", {
 		var innerHTML = "<span class='projectcolor' style='color: " + projectcolor + "; background-color: " + projectcolor + "'></span>" + project.name;
 		return this.createCell("xsmall", innerHTML);
 	},
+	addLabelsCell: function(item) {
+		display = "";
+		for (let label of item.labels) {
+			display = display + label + " ";
+		}
+		var innerHTML = "<span class='projectcolor'></span>" + display;
+		return this.createCell("xsmall", innerHTML);
+	},
 	addAssigneeAvatorCell: function(item, collaboratorsMap) {	
 		var avatarImg = document.createElement("img");
 		avatarImg.className = "todoAvatarImg";
@@ -647,9 +655,13 @@ Module.register("MMM-Todoist", {
 			if (this.config.showProject) {
 				divRow.appendChild(this.addColumnSpacerCell());
 				divRow.appendChild(this.addProjectCell(item));
-			}
+			} 
 			if (this.config.displayAvatar) {
 				divRow.appendChild(this.addAssigneeAvatorCell(item, collaboratorsMap));
+			}
+			if (this.config.showLabels) {
+				divRow.appendChild(this.addColumnSpacerCell());
+				divRow.appendChild(this.addLabelsCell(item));	
 			}
 
 			divBody.appendChild(divRow);
